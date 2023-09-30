@@ -27,12 +27,35 @@ t1 = ts.utc(2023, 12, 31, 4)
 times_hag, hag_events = almanac.find_discrete(t0, t1, almanac.sunrise_sunset(eph, Hague))
 times_jhb, jhb_events = almanac.find_discrete(t0, t1, almanac.sunrise_sunset(eph, joburg))
 
-times_df = times_hag.utc_iso()[]
+ times_hag.utc_iso()[0::2] #1st element is the the sunrise
+ times_hag.utc_iso()[1::2] #2nd the sunset
+
+# Create a DataFrame
+sunrise_sunset_df = pd.DataFrame({'Sunrise': times_hag.utc_iso()[0::2],
+                                  'Sunset': times_hag.utc_iso()[1::2]})
+
+# Define a function to convert times and calculate time difference
+def convert_and_calculate(df):
+    df['Sunrise'] = pd.to_datetime(df['Sunrise'])
+    df['Sunset'] = pd.to_datetime(df['Sunset'])
+    df['Time Difference (Hours)'] = (df['Sunset'] - df['Sunrise']).dt.total_seconds() / 3600
+    
+    sunrise_sunset_df['diff_share'] = sunrise_sunset_df['Time Difference (Hours)'] / sunrise_sunset_df['Time Difference (Hours)'].shift(1)
+    sunrise_sunset_df['diff_abs'] = sunrise_sunset_df['Time Difference (Hours)'] - sunrise_sunset_df['Time Difference (Hours)'].shift(1)
+    sunrise_sunset_df['diff_share_minutes'] = sunrise_sunset_df['diff_abs'] * 60
+    return df
+
+# Apply the function to the DataFrame
+sunrise_sunset_clean = convert_and_calculate(sunrise_sunset_df)
+
+times_df = times_hag.utc_iso()
+dir(times_hag)
+
 pd.DataFrame({'Date (Local)': times_df})
 
 # Assuming you have times_hag and times_jhb as Skyfield Time objects
 # Convert times to datetime objects and then to UTC
-times_hag_utc = [t.utc_datetime() for t in times_hag]
+times_hag_utc = [times_hag.utc_datetime() for t in times_hag]
 times_jhb_utc = [t.utc_datetime() for t in times_jhb]
 
 df_hag = pd.DataFrame({'Date (UTC)': times_hag_utc})
